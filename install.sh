@@ -177,8 +177,8 @@ failexitcode
 
 run_postinst() {
   dfmgr_run_post
-  devnull sudo rm -Rf /usr/share/xsessions/i3-with-shmlog.desktop
-  ln_sf "$DOWNLOADED_TO/i3blocks" "$CONF/i3blocks"
+  #devnull sudo rm -Rf /usr/share/xsessions/i3-with-shmlog.desktop
+  ln_sf "$APPDIR/i3blocks" "$CONF/i3blocks"
 }
 
 execute \
