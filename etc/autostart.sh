@@ -10,20 +10,14 @@
 #
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Set functions
-cmd_exist() {
-  unalias "$1" >/dev/null 2>&1
-  command -v "$1" >/dev/null 2>&1
-}
 __running() { __pid "$1" >/dev/null 2>&1; }
 __kill() { kill -9 "$(__pid "$1")" >/dev/null 2>&1; }
-__start() { sleep 1 && "$*" >/dev/null 2>&1 & disown; }
+__start() { sleep .2 && $* >/dev/null 2>&1 & disown; }
 __pid() { ps -ux | grep "$1" | grep -v 'grep ' | awk '{print $2}'; }
+cmd_exist() { unalias "$1" >/dev/null 2>&1; command -v "$1" >/dev/null 2>&1; }
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # sudo password using dmenu
-if cmd_exist dmenupass; then
-  SUDO_ASKPASS="dmenupass"
-fi
-
+cmd_exist dmenupass && SUDO_ASKPASS="dmenupass"
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # set desktop session
 DESKTOP_SESSION="${DESKTOP_SESSION:-i3}"
@@ -32,7 +26,8 @@ DESKTOP_SESSION="${DESKTOP_SESSION:-i3}"
 DESKTOP_SESSION_CONFDIR="$HOME/.config/$DESKTOP_SESSION"
 
 # set resolution
-RESOLUTION="$(xrandr --current | grep '*' | uniq | awk '{print $1}')"
+cmd_exist xrandr && [ -n "$DISPLAY" ] && \
+  RESOLUTION="$(xrandr --current | grep '*' | uniq | awk '{print $1}')"
 
 # export setting
 export SUDO_ASKPASS DESKTOP_SESSION DESKTOP_SESSION_CONFDIR RESOLUTION
@@ -41,7 +36,7 @@ export SUDO_ASKPASS DESKTOP_SESSION DESKTOP_SESSION_CONFDIR RESOLUTION
 # Panel - not needed for awesome i3 qtile xmonad
 if [ "$DESKTOP_SESSION" != "awesome" ] || [ "$DESKTOP_SESSION" != "i3" ] || [ "$DESKTOP_SESSION" != "sway" ] || \
   [ "$DESKTOP_SESSION" != "qtile" ] || [ "$DESKTOP_SESSION" != "xmonad" ] || [ "$DESKTOP_SESSION" != "xfce4" ]; then
-elif ! __running xfce4-panel; then
+if ! __running xfce4-panel; then
   if cmd_exist polybar; then
     __kill polybar
     __start "$HOME/.config/polybar/launch.sh"
@@ -59,7 +54,7 @@ elif ! __running xfce4-panel; then
     __start xfce4-panel
   fi
 fi
-
+fi
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # setup keyboard
 if cmd_exist ibus-daemon; then
@@ -77,11 +72,11 @@ if cmd_exist sxhkd; then
   __kill sxhkd
   __start sxhkd -c "$HOME/.config/sxhkd/sxhkdrc"
 fi
+
 if cmd_exist setxkbmap; then
   __kill setxkbmap
   __start setxkbmap -model pc104 -layout us -option "terminate:ctrl_alt_bksp"
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Start window compositor
 if cmd_exist picom; then
@@ -91,7 +86,6 @@ elif cmd_exist compton; then
   __kill compton
   __start compton -b --config "$DESKTOP_SESSION_CONFDIR/compton.conf"
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # test for an existing dbus daemon, just to be safe
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
@@ -112,7 +106,6 @@ if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
     __start dbus-launch "${dbus_args[*]}"
   fi
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # xsettings
 if cmd_exist xsettingsd; then
@@ -134,10 +127,10 @@ elif [ -f /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 ]; then
   __kill polkit-gnome-authentication-agent-1
   __start /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #Notification daemon
 if cmd_exist notify-daemon; then
+  __kill notify-daemon
   __start notify-daemon
 elif [ -f /usr/lib/xfce4/notifyd/xfce4-notifyd ]; then
   __kill xfce4-notifyd
@@ -152,34 +145,26 @@ elif cmd_exist deadd-notification-center; then
   __kill deadd-notification-center
   __start deadd-notification-center
 fi
-
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# sleep for 10 seconds
-sleep 10
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # vmware tools
 if cmd_exist vmware-user-suid-wrapper && ! __running vmware-user-suid-wrapper; then
   __kill vmware-user-suid-wrapper
   __start vmware-user-suid-wrapper
 fi
-
 if cmd_exist vmware-user && ! __running vmware-user; then
   __kill vmware-user
   __start vmware-user
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # start conky
 if cmd_exist conky; then
   __kill conky
   __start conky -c "$DESKTOP_SESSION_CONFDIR/conky.conf"
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 # Wallpaper manager
 if cmd_exist randomwallpaper; then
+  __kill randomwallpaper
   __start randomwallpaper
 elif cmd_exist variety; then
   __kill variety
@@ -191,20 +176,18 @@ elif cmd_exist nitrogen; then
   __kill nitrogen
   __start nitrogen --restore
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Network Manager
 if cmd_exist nm-applet; then
   __kill nm-applet
   __start nm-applet
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Package Manager
 if cmd_exist check-for-updates; then
+  __kill check-for-updates
   __start check-for-updates
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # bluetooth
 if cmd_exist blueberry-tray; then
@@ -214,59 +197,53 @@ elif cmd_exist blueman-applet; then
   __kill blueman-applet
   __start blueman-applet
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # num lock activated
 if cmd_exist numlockx; then
   __kill numlockx
   __start numlockx on
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # volume
 if cmd_exist volumeicon; then
   __kill volumeicon
   __start volumeicon
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # clipman
 if cmd_exist xfce4-clipman; then
   __kill xfce4-clipman
   __start xfce4-clipman
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # PowerManagement
 if cmd_exist xfce4-power-manager; then
   __kill xfce4-power-manager
   __start xfce4-power-manager
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Session used if you want xfce4
 # if cmd_exist xfce4-session; then
 #   __kill xfce4-session
 #   __start xfce4-session
 # fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Screenkey
 #if cmd_exist screenkey ; then
 #    __kill screenkey
 #    __start screenkey
 #fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # mpd
-if [ -z "$MPDSERVER" ] || cmd_exist mpd && ! __running mpd; then
+if [ -z "$MPDSERVER" ] && cmd_exist mpd && ! __running mpd; then
+  __kill mpd
   __start mpd
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # transmission
-if cmd_exist mytorrents; then
-  __start mytorrents
+if cmd_exist mytorrent; then
+  __kill mytorrent
+  __start mytorrent
 elif cmd_exist transmission-daemon && ! __running transmission-daemon; then
   __start transmission-daemon
 elif cmd_exist transmission-gtk && ! __running transmission-gtk; then
@@ -274,18 +251,15 @@ elif cmd_exist transmission-gtk && ! __running transmission-gtk; then
 elif cmd_exist transmission-remote-gtk && ! __running transmission-remote-gtk && __running transmission-daemon; then
   __start transmission-remote-gtk -m
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Welcome Message
-if cmd_exist notify-send; then
-  sleep 90 && notify-send --app-name="$DESKTOP_SESSION" "Welcome $USER to $DESKTOP_SESSION Desktop" &
+if cmd_exist notifications; then
+  sleep 90 && notifications "$DESKTOP_SESSION" "Welcome $USER to $DESKTOP_SESSION Desktop" &
 fi
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # final
 sleep 10
-unset -f cmd_exist __kill __start
-
+unset -f cmd_exist __kill __start __pid
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 exit 0
 ## End ##
