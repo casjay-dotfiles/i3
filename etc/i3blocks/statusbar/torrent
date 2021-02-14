@@ -17,8 +17,8 @@ transmission-remote -l | grep % |
 				s/Z/🌱/g" | awk '{print $2, $1}' | sed -e "s/ $//g" | tr '\n' ' '
 
 case $BLOCK_BUTTON in
-    1) $TERMINAL -e transmission-remote-cli ;;
-    3) pgrep -x dunst >/dev/null && notify-send "Torrent module" "🛑: paused
+    1) myterminal -e transmission-remote-cli ;;
+		3) notifications "Torrent module" "🛑: paused
 ⏳: idle (seeds needed)
 🔼: uploading (unfinished)
 🔽: downloading

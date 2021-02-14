@@ -3,7 +3,7 @@ exec --no-startup-id ~/.config/i3/autostart.sh
 
 # #---Basic Definitions---# #
 for_window [class="^.*"] border pixel 0
-set $term --no-startup-id $TERMINAL
+set $term --no-startup-id myterminal
 set $mod Mod4
 
 # #---Dropdown Windows---# #
