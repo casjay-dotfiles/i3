@@ -1,20 +1,38 @@
 #!/usr/bin/env bash
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# @Author      : Jason
-# @Contact     : casjaysdev@casjay.net
-# @File        : autostart.sh
-# @Created     : Thurs, Jan 21, 2021, 00:00 EST
-# @License     : WTFPL
-# @Copyright   : Copyright (c) CasjaysDev
-# @Description : autostart script for i3
-#
+PROG="autostart.sh"
+USER="${SUDO_USER:-${USER}}"
+HOME="${USER_HOME:-${HOME}}"
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+#set opts
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+##@Version       : 021320212341-git
+# @Author        : Jason Hempstead
+# @Contact       : jason@casjaysdev.com
+# @License       : WTFPL
+# @ReadME        : autostart.sh --help
+# @Copyright     : Copyright: (c) 2021 Jason Hempstead, CasjaysDev
+# @Created       : Saturday, Feb 13, 2021 23:41 EST
+# @File          : autostart.sh
+# @Description   : autostart script for i3
+# @TODO          :
+# @Other         :
+# @Resource      :
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Help
+[[ "$1" = *help ]] && printf "%s\n" "Usage: autostart.sh" "Starts applications for i3 window manager" && exit
+
 # Set functions
 __running() { __pid "$1" >/dev/null 2>&1; }
 __pid() { ps -ux | grep "$1" | grep -v 'grep ' | awk '{print $2}'; }
 __kill() { __running "$1" && kill -9 "$(__pid "$1")" >/dev/null 2>&1; }
-__cmd_exist() { unalias "$1" >/dev/null 2>&1; command -v "$1" >/dev/null 2>&1; }
+__cmd_exist() {
+  unalias "$1" >/dev/null 2>&1
+  command -v "$1" >/dev/null 2>&1
+}
 __start() {
   local CMD="$1" && shift 1
   local ARGS="$*" && shift $#
@@ -33,7 +51,7 @@ DESKTOP_SESSION="${DESKTOP_SESSION:-i3}"
 DESKTOP_SESSION_CONFDIR="$HOME/.config/$DESKTOP_SESSION"
 
 # set resolution
-__cmd_exist xrandr && [ -n "$DISPLAY" ] && \
+__cmd_exist xrandr && [ -n "$DISPLAY" ] &&
   RESOLUTION="$(xrandr --current | grep '*' | uniq | awk '{print $1}')"
 
 # export setting
@@ -41,26 +59,26 @@ export SUDO_ASKPASS DESKTOP_SESSION DESKTOP_SESSION_CONFDIR RESOLUTION
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # Panel - not needed for awesome i3 qtile xmonad
-if [ "$DESKTOP_SESSION" != "awesome" ] || [ "$DESKTOP_SESSION" != "i3" ] || [ "$DESKTOP_SESSION" != "sway" ] || \
+if [ "$DESKTOP_SESSION" != "awesome" ] || [ "$DESKTOP_SESSION" != "i3" ] || [ "$DESKTOP_SESSION" != "sway" ] ||
   [ "$DESKTOP_SESSION" != "qtile" ] || [ "$DESKTOP_SESSION" != "xmonad" ] || [ "$DESKTOP_SESSION" != "xfce4" ]; then
-if ! __running xfce4-panel; then
-  if __cmd_exist polybar; then
-    __kill polybar
-    __start "$HOME/.config/polybar/launch.sh"
-  elif __cmd_exist tint2; then
-    __kill tint2
-    __start tint2 -c "$HOME/.config/tint2/tint2rc"
-  elif __cmd_exist lemonbar; then
-    __kill lemonbar
-    __start "$HOME/.config/lemonbar/lemonbar.sh"
-  else
-    PANEL="none"
+  if ! __running xfce4-panel; then
+    if __cmd_exist polybar; then
+      __kill polybar
+      __start "$HOME/.config/polybar/launch.sh"
+    elif __cmd_exist tint2; then
+      __kill tint2
+      __start tint2 -c "$HOME/.config/tint2/tint2rc"
+    elif __cmd_exist lemonbar; then
+      __kill lemonbar
+      __start "$HOME/.config/lemonbar/lemonbar.sh"
+    else
+      PANEL="none"
+    fi
+    if [ "$PANEL" = "none" ] && __cmd_exist xfce4-session && __cmd_exist xfce4-panel; then
+      __kill xfce4-panel
+      __start xfce4-panel
+    fi
   fi
-  if [ "$PANEL" = "none" ] && __cmd_exist xfce4-session && __cmd_exist xfce4-panel; then
-    __kill xfce4-panel
-    __start xfce4-panel
-  fi
-fi
 fi
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # setup keyboard
