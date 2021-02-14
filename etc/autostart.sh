@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # @Author      : Jason
 # @Contact     : casjaysdev@casjay.net
@@ -10,23 +9,15 @@
 # @Description : autostart script for i3
 #
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 # Set functions
-
 cmd_exist() {
   unalias "$1" >/dev/null 2>&1
   command -v "$1" >/dev/null 2>&1
 }
-__kill() {
-  kill -9 "$(pidof "$1")" >/dev/null 2>&1
-}
-__start() {
-  sleep 1 && "$@" >/dev/null 2>&1 &
-}
-__running() {
-  pidof "$1" >/dev/null 2>&1
-}
-
+__running() { __pid "$1" >/dev/null 2>&1; }
+__kill() { kill -9 "$(__pid "$1")" >/dev/null 2>&1; }
+__start() { sleep 1 && "$*" >/dev/null 2>&1 & disown; }
+__pid() { ps -ux | grep "$1" | grep -v 'grep ' | awk '{print $2}'; }
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # sudo password using dmenu
 if cmd_exist dmenupass; then
@@ -47,8 +38,10 @@ RESOLUTION="$(xrandr --current | grep '*' | uniq | awk '{print $1}')"
 export SUDO_ASKPASS DESKTOP_SESSION DESKTOP_SESSION_CONFDIR RESOLUTION
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# Panel - not needed for awesome qtile xmonad
-if ! __running xfce4-panel; then
+# Panel - not needed for awesome i3 qtile xmonad
+if [ "$DESKTOP_SESSION" != "awesome" ] || [ "$DESKTOP_SESSION" != "i3" ] || [ "$DESKTOP_SESSION" != "sway" ] || \
+  [ "$DESKTOP_SESSION" != "qtile" ] || [ "$DESKTOP_SESSION" != "xmonad" ] || [ "$DESKTOP_SESSION" != "xfce4" ]; then
+elif ! __running xfce4-panel; then
   if cmd_exist polybar; then
     __kill polybar
     __start "$HOME/.config/polybar/launch.sh"
@@ -66,15 +59,13 @@ if ! __running xfce4-panel; then
     __start xfce4-panel
   fi
 fi
-# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # setup keyboard
 if cmd_exist ibus-daemon; then
   __kill ibus-daemon
   __start ibus-daemon --xim -d
-fi
-
-if cmd_exist ibus; then
+elif cmd_exist ibus; then
   __kill ibus
   __start ibus
 elif cmd_exist fcitx; then
@@ -85,7 +76,8 @@ fi
 if cmd_exist sxhkd; then
   __kill sxhkd
   __start sxhkd -c "$HOME/.config/sxhkd/sxhkdrc"
-elif cmd_exist setxkbmap; then
+fi
+if cmd_exist setxkbmap; then
   __kill setxkbmap
   __start setxkbmap -model pc104 -layout us -option "terminate:ctrl_alt_bksp"
 fi
@@ -101,7 +93,7 @@ elif cmd_exist compton; then
 fi
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-# test for an existing bus daemon, just to be safe
+# test for an existing dbus daemon, just to be safe
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
   if cmd_exist dbus-launch; then
     dbus_args="--sh-syntax --exit-with-session"
@@ -145,7 +137,9 @@ fi
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #Notification daemon
-if [ -f /usr/lib/xfce4/notifyd/xfce4-notifyd ]; then
+if cmd_exist notify-daemon; then
+  __start notify-daemon
+elif [ -f /usr/lib/xfce4/notifyd/xfce4-notifyd ]; then
   __kill xfce4-notifyd
   __start /usr/lib/xfce4/notifyd/xfce4-notifyd
 elif [ -f /usr/lib/x86_64-linux-gnu/xfce4/notifyd/xfce4-notifyd ]; then
@@ -161,7 +155,6 @@ fi
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # sleep for 10 seconds
-
 sleep 10
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -186,7 +179,9 @@ fi
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # Wallpaper manager
-if cmd_exist variety; then
+if cmd_exist randomwallpaper; then
+  __start randomwallpaper
+elif cmd_exist variety; then
   __kill variety
   __start variety
 elif cmd_exist feh; then
@@ -264,13 +259,15 @@ fi
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # mpd
-if cmd_exist mpd && ! __running mpd; then
+if [ -z "$MPDSERVER" ] || cmd_exist mpd && ! __running mpd; then
   __start mpd
 fi
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # transmission
-if cmd_exist transmission-daemon && ! __running transmission-daemon; then
+if cmd_exist mytorrents; then
+  __start mytorrents
+elif cmd_exist transmission-daemon && ! __running transmission-daemon; then
   __start transmission-daemon
 elif cmd_exist transmission-gtk && ! __running transmission-gtk; then
   __start transmission-gtk -m
