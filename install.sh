@@ -79,7 +79,7 @@ dfmgr_run_init
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # end with a space
 APP="$APPNAME xfce4-terminal xfce4-power-manager volumeicon xscreensaver "
-APP+="conky tint2 xbindkeys firefox notify-send iwconfig catfish dmenu "
+APP+="conky tint2 xbindkeys firefox notify-send iwconfig catfish dmenu lxappearance qt5ct "
 PERL=""
 PYTH=""
 PIPS=""
